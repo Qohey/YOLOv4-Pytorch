@@ -1,0 +1,16 @@
+# cache files
+__pycache__/
+
+# log files
+*.log
+
+# env dir
+.env
+.venv
+env/
+venv/
+ENV/
+
+# training data
+data/
+backup/
