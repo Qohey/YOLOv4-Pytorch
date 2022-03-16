@@ -32,7 +32,7 @@ from src.test import Tester
 logger = logging.getLogger(__name__)
 
 class Trainer:
-    global ckpt
+    global ckpt # Checkpoint
     def __init__(self, opt):
         self.cfg            = opt.cfg
         self.names          = load_class_names(opt.names)
@@ -269,7 +269,7 @@ class Trainer:
                     tester.setup()
                     results, maps, times = tester.test(conf_thresh=0.001, iou_thresh=0.6)
 
-            with open(self.result_path, "a") as f:
+            with open(self.result_path, mode="a", encoding="UTF-8") as f:
                 f.write(info + "%10.4g" * 7 % results + "\n")
 
             tags = ["train/box_loss",       "train/obj_loss",   "train/cls_loss",
