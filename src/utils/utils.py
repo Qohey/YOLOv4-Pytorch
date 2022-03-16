@@ -2,6 +2,7 @@
 
 import os
 
+
 def load_class_names(namesfile):
     class_names = []
     with open(namesfile, mode="r", encoding="UTF-8") as fp:

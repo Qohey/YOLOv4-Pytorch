@@ -8,8 +8,9 @@ import torch
 
 from src import train
 from src.train import Trainer
-from test import Tester
+from src.test import Tester
 from src.utils.option import Options
+
 
 if __name__ == "__main__":
     logger = logging.getLogger(__name__)

@@ -14,17 +14,17 @@ from threading import Thread
 import cv2
 import numpy as np
 import torch
+import pickle
 from PIL import Image, ExifTags
 from torch.utils.data import Dataset
 from tqdm import tqdm
-
-import pickle
 from copy import deepcopy
 from pycocotools import mask as maskUtils
 from torchvision.utils import save_image
 
 from src.utils.general import xyxy2xywh, xywh2xyxy
 from src.utils.torch_utils import torch_distributed_zero_first
+
 
 # Parameters
 help_url = 'https://github.com/ultralytics/yolov5/wiki/Train-Custom-Data'

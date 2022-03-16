@@ -20,6 +20,7 @@ from src.utils.loss import compute_loss
 from src.utils.plots import output_to_target, plot_images
 from src.utils.metrics import ap_per_class
 
+
 logger = logging.getLogger(__name__)
 
 class Tester:

@@ -9,9 +9,9 @@ import logging
 from copy import deepcopy
 
 import numpy as np
-from tqdm import tqdm
 import yaml
 import torch
+from tqdm import tqdm
 from torch import optim
 from torch.cuda import amp
 from torch.backends import cudnn
@@ -26,7 +26,8 @@ from src.utils.general import fitness, fitness_p, fitness_r, fitness_ap50, fitne
 from src.utils.plots import plot_images, plot_labels, plot_results
 from src.utils.loss import compute_loss
 from src.models.models import Darknet
-from test import Tester
+from src.test import Tester
+
 
 logger = logging.getLogger(__name__)
 

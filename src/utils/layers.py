@@ -3,9 +3,9 @@
 import math
 
 import numpy as np
-import torch.nn.functional as F
 import torch
 from torch import nn
+from torch.nn import functional as F
 
 
 class Mish(nn.Module):  # https://github.com/digantamisra98/Mish
