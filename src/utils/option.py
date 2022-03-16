@@ -48,11 +48,11 @@ class Options:
         #                     Detecting options
         # ===============================================================
         if "detect" in argv:
-            self.parser.add_argument("--cfg",       type=str, default="config/Yolov4.cfg",  help="Path to CFG file")
-            self.parser.add_argument("--names",     type=str, default="config/Food.names",  help="Path to names file")
-            self.parser.add_argument("--input",     type=str, default="data",               help="Select training labels")
-            self.parser.add_argument("--weights",   type=str, default="",                   help="Select *.pth file")
-            self.parser.add_argument("--device",        type=str,   default="0",                    help="GPU Index num or cpu")
+            self.parser.add_argument("--cfg",       type=str,   default="config/Yolov4.cfg",    help="Path to CFG file")
+            self.parser.add_argument("--names",     type=str,   default="config/Food.names",    help="Path to names file")
+            self.parser.add_argument("--input",     type=str,   default="data",                 help="Select training labels")
+            self.parser.add_argument("--weights",   type=str,   default="",                     help="Select *.pth file")
+            self.parser.add_argument("--device",    type=str,   default="0",                    help="GPU Index num or cpu")
 
             self.parser.add_argument("--thresh",    type=float, default=0.5,    help="Detection threshold specified between 0.0~1.0")
 
@@ -69,7 +69,7 @@ class Options:
             self.parser.add_argument("--names",         type=str,   default="config/food.names",    help="Path to names file")
             self.parser.add_argument("--weights",       type=str,   default="",                     help="Select *.pth files",  nargs="+", required=True)
             self.parser.add_argument("--device",        type=str,   default="0",                    help="GPU Index num or cpu")
-            self.parser.add_argument("--project",       type=str,   default="result",                help="Save to backup/[--project]")
+            self.parser.add_argument("--project",       type=str,   default="result",               help="Save to backup/[--project]")
             self.parser.add_argument("--exp",           type=str,   default="exp",                  help="Save to backup/[--project]/[--name]")
             self.parser.add_argument("--test_path",     type=str,   default="test.txt",             help="Path to test.txt")
 
