@@ -26,7 +26,7 @@ from src.utils.general import fitness, fitness_p, fitness_r, fitness_ap50, fitne
 from src.utils.plots import plot_images, plot_labels, plot_results
 from src.utils.loss import compute_loss
 from src.models.models import Darknet
-from src.tester import Tester
+from test import Tester
 
 logger = logging.getLogger(__name__)
 
