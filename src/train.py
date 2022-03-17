@@ -328,10 +328,9 @@ class Trainer:
         torch.save(ckpt, os.path.join(self.weight_dir, "last.pth"))
         if best_fitness == fi:
             torch.save(ckpt, os.path.join(self.weight_dir, "best.pth"))
-        if (best_fitness == fi) and (epoch >= 200):
-            torch.save(ckpt, os.path.join(self.weight_dir, f"best_{epoch:03d}.pth"))
-        if best_fitness == fi:
             torch.save(ckpt, os.path.join(self.weight_dir, "best_overall.pth"))
+            if 200 <= epoch:
+                torch.save(ckpt, os.path.join(self.weight_dir, f"best_{epoch:03d}.pth"))
         if best_fitness_p == fi_p:
             torch.save(ckpt, os.path.join(self.weight_dir, "best_p.pth"))
         if best_fitness_r == fi_r:
@@ -342,8 +341,6 @@ class Trainer:
             torch.save(ckpt, os.path.join(self.weight_dir, "best_ap.pth"))
         if best_fitness_f == fi_f:
             torch.save(ckpt, os.path.join(self.weight_dir, "best_f.pth"))
-        del ckpt
-
 
         fresults = os.path.join(self.save_dir, "results.txt")
         flast = os.path.join(self.weight_dir, "last.pth")
