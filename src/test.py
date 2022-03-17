@@ -134,19 +134,22 @@ class Tester:
                         stats.append((torch.zeros(0, niou, dtype=torch.bool), torch.Tensor(), torch.Tensor(), target_class))
                     continue
 
+                # Append to text file
                 path = Path(paths[si])
                 if self.save_txt:
-                    gn = torch.tensor(shapes[si][0])[[1, 0, 1, 0]]
+                    gn = torch.tensor(shapes[si][0])[[1, 0, 1, 0]] # normalization gain whwh
                     x = pred.clone()
-                    x[:, :4] = scale_coords(img[si].shape[1:], x[:, :4], shapes[si][0], shapes[si][1])
+                    x[:, :4] = scale_coords(img[si].shape[1:], x[:, :4], shapes[si][0], shapes[si][1])  # to original
                     for *xyxy, conf, cls, in x:
-                        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()
-                        line = (cls, *xywh, conf) if self.save_conf else (cls, *xywh)
+                        xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist() # normalized xywh
+                        line = (cls, *xywh, conf) if self.save_conf else (cls, *xywh)  # label format
                         with open(self.label_path / (path.stem + ".txt"), mode="a", encoding="UTF-8") as f:
                             f.write(("%g " * len(line)).rstrip() % line + "\n")
 
+                # Clip boxes to image bounds
                 clip_coords(pred, (height, width))
 
+                # Append to pycocotools JSON dictionary
                 if self.save_json:
                     image_id = int(path.stem) if path.stem.isnumeric() else path.stem
                     box = pred[:, :4].clone()
@@ -158,7 +161,8 @@ class Tester:
                                       "category_id": int(p[5]),
                                       "bbox": [round(x, 3) for x in b],
                                       "score": round(p[4], 5)})
-
+                                      
+                # Assign all predictions as incorrect
                 correct = torch.zeros(pred.shape[0], niou, dtype=torch.bool, device=self.device)
                 if num_labels:
                     detected = []
