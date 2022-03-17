@@ -17,6 +17,7 @@ from torch.cuda import amp
 from torch.backends import cudnn
 from torch.optim import lr_scheduler
 from torch.nn import functional as F
+from torch.utils.tensorboard import SummaryWriter
 
 from src.utils.utils import load_class_names, replace_extension
 from src.utils.torch_utils import ModelEMA, select_device
@@ -171,18 +172,23 @@ class Trainer:
                                                         rank=-1, world_size=1, workers=opt.workers)
         max_label_class = np.concatenate(train_dataset.labels, 0)[:, 0].max()  # max label class
         num_batches = len(train_loader)
+        assert max_label_class < len(self.names), "Label class %g exceeds nc=%g in %s. Possible class labels are 0-%g" % (max_label_class, len(self.names), opt.data, len(self.names) - 1)
 
         start_epoch, best_fitness = 0, 0.0
         self.EMA.updates = start_epoch * num_batches // self.accumulate
         test_loader  = create_dataloader(self.valid_path, img_size_test, self.batch_size*2, grid_size,
                                         hyp=self.param, cache=opt.cache, rect=True,
                                         rank=-1, world_size=1, workers=opt.workers)[0]  # testloader
+
         labels = np.concatenate(train_dataset.labels, 0)
+        classes = torch.tensor(labels[:, 0])
         plot_labels(labels, save_dir=self.save_dir)
+        tensorboard_writer = SummaryWriter(self.save_dir)
+        tensorboard_writer.add_histogram("classes", classes, 0)
+
         self.param["cls"] *= len(self.names) / 80.
         self.model.class_weights = labels_to_class_weights(train_dataset.labels, len(self.names)).to(self.device)
         num_warmup = max(round(self.param["warmup_epochs"] * num_batches), 1000)
-        maps = np.zeros(len(self.names))
         results = (0, 0, 0, 0, 0, 0, 0)
         self.scheduler.last_epoch = start_epoch - 1
         scaler = amp.GradScaler(enabled=self.use_cuda)
@@ -226,6 +232,7 @@ class Trainer:
                     pred = self.model(imgs)
                     loss, loss_times = compute_loss(pred, targets.to(self.device), self.model)
 
+                # Backward
                 scaler.scale(loss).backward()
 
                 if num_integrated % self.accumulate == 0:
@@ -234,40 +241,40 @@ class Trainer:
                     self.optimizer.zero_grad()
                     self.EMA.update(self.model)
 
+                if num_integrated < 3:
+                    file_name = os.path.join(self.save_dir, f"train_batch{num_integrated}.jpg")
+                    plot_images(images=imgs, targets=targets, paths=paths, fname=file_name, names=self.names)
+
                 # Print
                 mloss = (mloss * i + loss_times) / (i + 1)
                 memory = "%.3gG" % (torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0)
                 info = ("%12s" * 2 + "%12.4g" * 6) % ("%g/%g" % (epoch + 1, opt.epochs), memory, *mloss, targets.shape[0], imgs.shape[-1])
                 pbar.set_description(info)
-
-                if num_integrated < 3:
-                    file_name = os.path.join(self.save_dir, f"train_batch{num_integrated}.jpg")
-                    plot_images(images=imgs, targets=targets, paths=paths, fname=file_name, names=self.names)
+            # End batch
 
             lr = [x["lr"] for x in self.optimizer.param_groups]
             self.scheduler.step()
             self.EMA.update_attr(self.model)
-            final_epoch = (epoch + 1 == opt.epochs)
 
-            if final_epoch:
-                if 3 <= epoch:
-                    test_model = self.EMA.ema.module if hasattr(self.EMA.ema, "module") else self.EMA.ema
-                    test_opt = deepcopy(opt)
-                    members = [member for member in test_opt.__dict__]
-                    # Initialize opt member
-                    for member in members:
-                        delattr(test_opt, member)
-                    test_opt.cfg        = opt.cfg
-                    test_opt.names      = opt.names
-                    test_opt.test_path  = self.valid_path
-                    test_opt.img_size   = img_size_test
-                    test_opt.batch_size = self.batch_size*2
-                    test_opt.save_dir   = self.save_dir
-                    test_opt.plots      = final_epoch
+            if 3 <= epoch:
+                test_model = self.EMA.ema.module if hasattr(self.EMA.ema, "module") else self.EMA.ema
+                test_opt = deepcopy(opt)
+                members = [member for member in test_opt.__dict__]
+                # Initialize opt member
+                for member in members:
+                    delattr(test_opt, member)
+                test_opt.cfg        = opt.cfg
+                test_opt.names      = opt.names
+                test_opt.test_path  = self.valid_path
+                test_opt.img_size   = img_size_test
+                test_opt.batch_size = self.batch_size*2
+                test_opt.save_dir   = self.save_dir
+                test_opt.plots      = True
 
-                    tester = Tester(model=test_model, data_loader=test_loader, opt=test_opt)
-                    tester.setup()
-                    results, maps, times = tester.test(conf_thresh=0.001, iou_thresh=0.6)
+                tester = Tester(model=test_model, data_loader=test_loader, opt=test_opt)
+                tester.setup()
+                results, maps, times = tester.test(conf_thresh=0.001, iou_thresh=0.6)
+                del tester, test_opt
 
             with open(self.result_path, mode="a", encoding="UTF-8") as f:
                 f.write(info + "%10.4g" * 7 % results + "\n")
@@ -277,7 +284,8 @@ class Trainer:
                     "val/box_loss",         "val/obj_loss",     "val/cls_loss",
                     "x/lr0",                "x/lr1",            "x/lr2"]
 
-            # for x, tag in zip(list(mloss[:-1]) + list(results) + lr, tags):
+            for x, tag in zip(list(mloss[:-1]) + list(results) + lr, tags):
+                tensorboard_writer.add_scalar(tag, x, epoch)
 
             # Update best mAP
             fi = fitness(np.array(results).reshape(1, -1))              # weighted combination of [P, R, mAP@.5, mAP@.5-.95]
@@ -301,54 +309,45 @@ class Trainer:
                 best_fitness_ap = fi_ap
             if fi_f > best_fitness_f:
                 best_fitness_f = fi_f
-
-            # Save model
-            if final_epoch:
-                with open(self.result_path, mode="r", encoding="UTF-8") as f:
-                    ckpt = {"epoch":                epoch,
-                            "best_fitness":         best_fitness,
-                            "best_fitness_p":       best_fitness_p,
-                            "best_fitness_r":       best_fitness_r,
-                            "best_fitness_ap50":    best_fitness_ap50,
-                            "best_fitness_ap":      best_fitness_ap,
-                            "best_fitness_f":       best_fitness_f,
-                            "training_results":     f.read(),
-                            "model":                self.EMA.ema.module.state_dict() if hasattr(self.EMA, "module") else self.EMA.ema.state_dict(),
-                            "optimizer":            self.optimizer.state_dict()}
-
-                torch.save(ckpt, os.path.join(self.weight_dir, "last.pth"))
-                if best_fitness == fi:
-                    torch.save(ckpt, os.path.join(self.weight_dir, "best.pth"))
-                if (best_fitness == fi) and (epoch >= 200):
-                    torch.save(ckpt, os.path.join(self.weight_dir, f"best_{epoch:03d}.pth"))
-                if best_fitness == fi:
-                    torch.save(ckpt, os.path.join(self.weight_dir, "best_overall.pth"))
-                if best_fitness_p == fi_p:
-                    torch.save(ckpt, os.path.join(self.weight_dir, "best_p.pth"))
-                if best_fitness_r == fi_r:
-                    torch.save(ckpt, os.path.join(self.weight_dir, "best_r.pth"))
-                if best_fitness_ap50 == fi_ap50:
-                    torch.save(ckpt, os.path.join(self.weight_dir, "best_ap50.pth"))
-                if best_fitness_ap == fi_ap:
-                    torch.save(ckpt, os.path.join(self.weight_dir, "best_ap.pth"))
-                if best_fitness_f == fi_f:
-                    torch.save(ckpt, os.path.join(self.weight_dir, "best_f.pth"))
-                if epoch == 0:
-                    torch.save(ckpt, os.path.join(self.weight_dir, f"epoch_{epoch:03d}.pth"))
-                if ((epoch+1) % 25) == 0:
-                    torch.save(ckpt, os.path.join(self.weight_dir, f"epoch_{epoch:03d}.pth"))
-                if epoch >= (opt.epochs-5):
-                    torch.save(ckpt, os.path.join(self.weight_dir, f"last_{epoch:03d}.pth"))
-                elif epoch >= 420:
-                    torch.save(ckpt, os.path.join(self.weight_dir, f"last_{epoch:03d}.pth"))
-                del ckpt
             # End epochs
         # End training
 
-        n = opt.exp if opt.exp.isnumeric() else ""
-        fresults = os.path.join(self.save_dir, f"results{n}.txt")
-        flast = os.path.join(self.weight_dir, f"last{n}.pth")
-        fbest = os.path.join(self.weight_dir, f"best{n}.pth")
+        # Save model
+        with open(self.result_path, mode="r", encoding="UTF-8") as f:
+            ckpt = {"epoch":                epoch,
+                    "best_fitness":         best_fitness,
+                    "best_fitness_p":       best_fitness_p,
+                    "best_fitness_r":       best_fitness_r,
+                    "best_fitness_ap50":    best_fitness_ap50,
+                    "best_fitness_ap":      best_fitness_ap,
+                    "best_fitness_f":       best_fitness_f,
+                    "training_results":     f.read(),
+                    "model":                self.EMA.ema.module.state_dict() if hasattr(self.EMA, "module") else self.EMA.ema.state_dict(),
+                    "optimizer":            self.optimizer.state_dict()}
+
+        torch.save(ckpt, os.path.join(self.weight_dir, "last.pth"))
+        if best_fitness == fi:
+            torch.save(ckpt, os.path.join(self.weight_dir, "best.pth"))
+        if (best_fitness == fi) and (epoch >= 200):
+            torch.save(ckpt, os.path.join(self.weight_dir, f"best_{epoch:03d}.pth"))
+        if best_fitness == fi:
+            torch.save(ckpt, os.path.join(self.weight_dir, "best_overall.pth"))
+        if best_fitness_p == fi_p:
+            torch.save(ckpt, os.path.join(self.weight_dir, "best_p.pth"))
+        if best_fitness_r == fi_r:
+            torch.save(ckpt, os.path.join(self.weight_dir, "best_r.pth"))
+        if best_fitness_ap50 == fi_ap50:
+            torch.save(ckpt, os.path.join(self.weight_dir, "best_ap50.pth"))
+        if best_fitness_ap == fi_ap:
+            torch.save(ckpt, os.path.join(self.weight_dir, "best_ap.pth"))
+        if best_fitness_f == fi_f:
+            torch.save(ckpt, os.path.join(self.weight_dir, "best_f.pth"))
+        del ckpt
+
+
+        fresults = os.path.join(self.save_dir, "results.txt")
+        flast = os.path.join(self.weight_dir, "last.pth")
+        fbest = os.path.join(self.weight_dir, "best.pth")
         for f1, f2 in zip([os.path.join(self.weight_dir, "last.pth"), os.path.join(self.weight_dir, "best.pth"), self.result_path], [flast, fbest, fresults]):
             if os.path.exists(f1):
                 os.rename(f1, f2)
