@@ -51,14 +51,18 @@ class Options:
             self.parser.add_argument("--cfg",       type=str,   default="config/Yolov4.cfg",    help="Path to CFG file")
             self.parser.add_argument("--names",     type=str,   default="config/Food.names",    help="Path to names file")
             self.parser.add_argument("--input",     type=str,   default="data",                 help="Select training labels")
-            self.parser.add_argument("--weights",   type=str,   default="",                     help="Select *.pth file")
+            self.parser.add_argument("--weights",   type=str,   default="",                     help="Select *.pth files", nargs="+", required=True)
             self.parser.add_argument("--device",    type=str,   default="0",                    help="GPU Index num or cpu")
+            self.parser.add_argument("--project",   type=str,   default="result",               help="Save to detected/[--project]")
+            self.parser.add_argument("--exp",       type=str,   default="exp",                  help="Save to detected/[--project]/[--name]")
 
-            self.parser.add_argument("--thresh",    type=float, default=0.5,    help="Detection threshold specified between 0.0~1.0")
+            self.parser.add_argument("--img_size",      type=int,   default=640,    help="Inference size")
+            self.parser.add_argument("--conf_thresh",   type=float, default=0.5,    help="Detection threshold specified between 0.0~1.0")
+            self.parser.add_argument("--iou_thresh",    type=float, default=0.5,    help="IOU threshold for NMS")
 
             self.parser.add_argument("--dont_show",     action="store_true",    help="Dont show results")
             self.parser.add_argument("--save_img",      action="store_true",    help="Save results to [--input/*.jpg]")
-            self.parser.add_argument("--save_labels",   action="store_true",    help="Save results to *.txt")
+            self.parser.add_argument("--save_txt",   action="store_true",    help="Save results to *.txt")
 
         # ===============================================================
         #                     Testing options
