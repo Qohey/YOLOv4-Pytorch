@@ -8,6 +8,7 @@ import torch
 
 from src import train
 from src.train import Trainer
+from src.detect import Detector
 from src.test import Tester
 from src.utils.option import Options
 
@@ -31,7 +32,9 @@ if __name__ == "__main__":
             sys.exit("Saved INTERRUPTED.pth")
 
     elif opt.action == "detect":
-        print("NotImplemented")
+        detector = Detector(opt)
+        detector.setup()
+        detector.detect(opt.conf_thresh, opt.iou_thresh)
 
     elif opt.action == "test":
         if opt.task == "test" or opt.task == "valid":
