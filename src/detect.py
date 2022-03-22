@@ -9,7 +9,7 @@ class Detector:
     def __init__(self, opt):
         self.cfg        = opt.cfg
         self.names      = load_class_names(opt.names)
-        self.weights    = opt.weights
+        self.weight     = opt.weight
         self.device     = opt.device
         self.img_size   = opt.img_size
         self.dont_show  = opt.dont_show
@@ -23,5 +23,5 @@ class Detector:
         self.half   = (self.device.type != "cpu")
 
 
-    def detect(self, conf_thresh=0.001, iou_thresh=0.6):
+    def detect(self, input="", conf_thresh=0.001, iou_thresh=0.6):
         return
