@@ -263,8 +263,8 @@ class Trainer:
                 # Initialize opt member
                 for member in members:
                     delattr(test_opt, member)
-                test_opt.cfg        = opt.cfg
-                test_opt.names      = opt.names
+                test_opt.cfg        = self.cfg
+                test_opt.names      = self.names
                 test_opt.test_path  = self.valid_path
                 test_opt.img_size   = img_size_test
                 test_opt.batch_size = self.batch_size*2
@@ -309,10 +309,25 @@ class Trainer:
                 best_fitness_ap = fi_ap
             if fi_f > best_fitness_f:
                 best_fitness_f = fi_f
+
+            # Save Checkpoint
+            with open(self.result_path, mode="r", encoding="UTF-8") as f:
+                ckpt = {"epoch":                epoch,
+                        "best_fitness":         best_fitness,
+                        "best_fitness_p":       best_fitness_p,
+                        "best_fitness_r":       best_fitness_r,
+                        "best_fitness_ap50":    best_fitness_ap50,
+                        "best_fitness_ap":      best_fitness_ap,
+                        "best_fitness_f":       best_fitness_f,
+                        "training_results":     f.read(),
+                        "model":                self.EMA.ema.module.state_dict() if hasattr(self.EMA, "module") else self.EMA.ema.state_dict(),
+                        "optimizer":            self.optimizer.state_dict()}
+            if epoch % int(opt.epochs / 4) == 0:
+                torch.save(ckpt, os.path.join(self.weight_dir, f"epoch_{epoch}.pth"))
             # End epochs
         # End training
 
-        # Save model
+        # Save last model
         with open(self.result_path, mode="r", encoding="UTF-8") as f:
             ckpt = {"epoch":                epoch,
                     "best_fitness":         best_fitness,
@@ -352,6 +367,6 @@ class Trainer:
                     strip_optimizer(f2)
 
         plot_results(save_dir=self.save_dir)
-        logger.info("%g epochs completed in %.3f hours.\n" % (epoch - start_epoch + 1, (time.time() - t0) / 3600))
+        logger.info("%g epochs completed in %.3f hours.\n" % (opt.epochs, (time.time() - t0) / 3600))
         torch.cuda.empty_cache()
         return results
