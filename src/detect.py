@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import logging
 
-from models.models import Darknet
+from sec.models.models import Darknet
 from src.utils.utils import load_class_names
 from src.utils.torch_utils import select_device
+
+
+logger = logging.getLogger(__name__)
 
 class Detector:
     def __init__(self, opt):
