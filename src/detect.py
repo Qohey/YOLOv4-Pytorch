@@ -2,7 +2,7 @@
 
 import logging
 
-from sec.models.models import Darknet
+from src.models.models import Darknet
 from src.utils.utils import load_class_names
 from src.utils.torch_utils import select_device
 
