@@ -3,6 +3,7 @@
 import os
 import sys
 import logging
+import glob
 
 import torch
 
@@ -34,12 +35,18 @@ if __name__ == "__main__":
     elif opt.action == "detect":
         detector = Detector(opt)
         detector.setup()
-        detector.detect(opt.conf_thresh, opt.iou_thresh)
+        input_data = os.path.abspath(opt.input)
+
+        if input_data.endswith(".jpg"):
+            detector.detect(input_data)
+        else:
+            for i, target in enumerate(glob.glob(os.path.join(input_data, "*.jpg"), recursive=True)):
+                detector.detect(target)
 
     elif opt.action == "test":
-        if opt.task == "test" or opt.task == "valid":
-            tester = Tester(opt=opt)
+        if opt.study == "test":
+            raise NotImplemented
+        else:
+            tester = Tester(opt)
             tester.setup()
             tester.test(conf_thresh=0.001, iou_thresh=0.6)
-        elif opt.task == "study":
-            raise NotImplemented
