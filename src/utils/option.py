@@ -63,6 +63,7 @@ class Options:
             self.parser.add_argument("--dont_show",     action="store_true",    help="Dont show results")
             self.parser.add_argument("--save_img",      action="store_true",    help="Save results to [--input/*.jpg]")
             self.parser.add_argument("--save_txt",      action="store_true",    help="Save results to *.txt")
+            self.parser.add_argument("--augment",       action="store_true",    help="Augmented inference")
 
         # ===============================================================
         #                     Testing options
