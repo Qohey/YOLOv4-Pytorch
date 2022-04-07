@@ -36,12 +36,7 @@ if __name__ == "__main__":
         detector = Detector(opt)
         detector.setup()
         input_data = os.path.abspath(opt.input)
-
-        if input_data.endswith(".jpg"):
-            detector.detect(input_data)
-        else:
-            for i, target in enumerate(glob.glob(os.path.join(input_data, "*.jpg"), recursive=True)):
-                detector.detect(target)
+        detector.detect(input_data)
 
     elif opt.action == "test":
         if opt.study == "test":
