@@ -57,7 +57,7 @@ class Options:
             self.parser.add_argument("--exp",       type=str,   default="exp",                  help="Save to detected/[--project]/[--name]")
 
             self.parser.add_argument("--img_size",      type=int,   default=640,    help="Inference size")
-            self.parser.add_argument("--conf_thresh",   type=float, default=0.001,  help="Detection threshold specified between 0.0~1.0")
+            self.parser.add_argument("--conf_thresh",   type=float, default=0.6,    help="Detection threshold specified between 0.0~1.0")
             self.parser.add_argument("--iou_thresh",    type=float, default=0.6,    help="IOU threshold for NMS")
 
             self.parser.add_argument("--dont_show",     action="store_true",    help="Dont show results")
@@ -79,7 +79,7 @@ class Options:
 
             self.parser.add_argument("--img_size",      type=int,   default=640,    help="Inference size (pixels)")
             self.parser.add_argument('--batch_size',    type=int,   default=32,     help="Size of each image batch")
-            self.parser.add_argument("--conf_thresh",   type=float, default=0.001,  help="Object confidence threshold")
+            self.parser.add_argument("--conf_thresh",   type=float, default=0.6,    help="Object confidence threshold")
             self.parser.add_argument("--iou_thresh",    type=float, default=0.65,   help="IOU threshold for NMS")
 
             self.parser.add_argument("--augment",   action="store_true",    help="Augmented inference")
@@ -87,7 +87,6 @@ class Options:
             self.parser.add_argument("--save_txt",  action="store_true",    help="Save results to *.txt")
             self.parser.add_argument("--save_conf", action="store_true",    help="Save confidences in [--save_txt] labels")
             self.parser.add_argument("--save_json", action="store_true",    help="Save a cocoapi-compatible JSON results file")
-            self.parser.add_argument("--study",     action="store_true",    help="")
 
 
     def _print(self):
