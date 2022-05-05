@@ -38,23 +38,18 @@ if __name__ == "__main__":
         detector.setup()
         input_data = os.path.abspath(opt.input)
         datasets = LoadImages(input_data, img_size=opt.img_size, auto_size=64)
-
-        from icecream import ic
         for path, img, im0s, vid_cap in datasets:
-            predictions, img = detector.detect(path, img, im0s, vid_cap)
+            predictions, img = detector.detect(img)
             for detect in predictions:
-                visualized = detector.visualize(detect, path, img, im0s)
+                visualized = detector.visualize(detect, img, im0s)
                 if not opt.dont_show:
-                    cv2.imshow(path, im0s)
+                    cv2.imshow(path, visualized)
                     cv2.waitKey(0)
                 if opt.save_img:
-                    save_path = os.path.splitext(os.path.basename(path))[0] + "_detected.jpg"
+                    save_path = os.path.join(os.path.dirname(path), os.path.splitext(os.path.basename(path))[0] + "_detected.jpg")
                     cv2.imwrite(save_path, im0s)
 
     elif opt.action == "test":
-        if opt.study == "test":
-            raise NotImplemented
-        else:
-            tester = Tester(opt)
-            tester.setup()
-            tester.test(conf_thresh=0.001, iou_thresh=0.6)
+        tester = Tester(opt)
+        tester.setup()
+        tester.test(conf_thresh=opt.conf_thresh, iou_thresh=opt.iou_thresh)
