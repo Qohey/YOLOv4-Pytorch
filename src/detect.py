@@ -45,7 +45,7 @@ class Detector:
             self.model.half()
 
 
-    def detect(self, path, img, im0s, vid_cap):
+    def detect(self, img):
         img = torch.from_numpy(img).to(self.device)
         img = img.half() if self.half else img.float()
         img /= 255.0
@@ -55,10 +55,10 @@ class Detector:
         predictions = self.model(img, augment=self.augment)[0]
         # Apply NMS
         predictions = non_max_suppression(predictions, self.conf_thresh, self.iou_thresh)
-
         return predictions, img
 
-    def visualize(self, detect, path, img, im0s):
+
+    def visualize(self, detect, img, im0s):
         s = ""
         s += "%gx%g " % img.shape[2:]  # print string
         if detect is not None and len(detect):
@@ -72,5 +72,4 @@ class Detector:
             for *xyxy, conf, cls in detect:
                 label = '%s %.2f' % (self.names[int(cls)], conf)
                 plot_one_box(xyxy, im0s, label=label, color=self.colors[int(cls)], line_thickness=3)
-
         return im0s
