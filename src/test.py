@@ -93,7 +93,7 @@ class Tester:
             self.num_class = len(self.names)
 
 
-    def test(self, conf_thresh=0.001, iou_thresh=0.6):
+    def test(self, conf_thresh=0.6, iou_thresh=0.6):
         self.model.eval()
         iouv = torch.linspace(0.5, 0.95, 10).to(self.device)  # iou vector for mAP@0.5:0.95
         niou = iouv.numel()
