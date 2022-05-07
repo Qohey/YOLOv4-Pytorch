@@ -1,18 +1,14 @@
 # -*- coding: utf-8 -*-
 
-import os
 import logging
-import time
 
-import cv2
 import torch
 from numpy import random
 
 from src.models.models import Darknet, load_darknet_weights
 from src.utils.utils import load_class_names
-
-from src.utils.torch_utils import select_device, time_synchronized
-from src.utils.general import non_max_suppression, scale_coords, xyxy2xywh, strip_optimizer
+from src.utils.torch_utils import select_device
+from src.utils.general import non_max_suppression, scale_coords
 from src.utils.plots import plot_one_box
 
 
@@ -25,8 +21,6 @@ class Detector:
         self.weight      = opt.weight
         self.device      = opt.device
         self.img_size    = opt.img_size
-        self.conf_thresh = opt.conf_thresh
-        self.iou_thresh  = opt.iou_thresh
         self.save_txt    = opt.save_txt
         self.augment     = opt.augment
         self.colors      = [[random.randint(0, 255) for _ in range(3)] for _ in range(len(self.names))]
@@ -45,7 +39,7 @@ class Detector:
             self.model.half()
 
 
-    def detect(self, img):
+    def detect(self, img, conf_thresh, iou_thresh):
         img = torch.from_numpy(img).to(self.device)
         img = img.half() if self.half else img.float()
         img /= 255.0
@@ -54,7 +48,7 @@ class Detector:
         # Inference
         predictions = self.model(img, augment=self.augment)[0]
         # Apply NMS
-        predictions = non_max_suppression(predictions, self.conf_thresh, self.iou_thresh)
+        predictions = non_max_suppression(predictions, conf_thresh, iou_thresh)
         return predictions, img
 
 
