@@ -13,6 +13,7 @@ from src.detect import Detector
 from src.test import Tester
 from src.utils.option import Options
 from src.utils.datasets import LoadImages
+from src.utils.general import xyxy2xywh
 
 
 if __name__ == "__main__":
@@ -38,18 +39,27 @@ if __name__ == "__main__":
         detector.setup()
         input_data = os.path.abspath(opt.input)
         datasets = LoadImages(input_data, img_size=opt.img_size, auto_size=64)
+
         for path, img, im0s, vid_cap in datasets:
-            predictions, img = detector.detect(img)
+            predictions, img = detector.detect(img, opt.conf_thresh, opt.iou_thresh)
             for detect in predictions:
                 visualized = detector.visualize(detect, img, im0s)
                 if not opt.dont_show:
                     cv2.imshow(path, visualized)
                     cv2.waitKey(0)
                 if opt.save_img:
-                    save_path = os.path.join(os.path.dirname(path), os.path.splitext(os.path.basename(path))[0] + "_detected.jpg")
+                    out_path = os.path.join(os.getcwd(), "out", "image")
+                    if not os.path.exists(out_path):
+                        os.makedirs(out_path)
+                    save_path = os.path.join(out_path, os.path.basename(path))
                     cv2.imwrite(save_path, im0s)
+                if opt.save_json:
+                    out_path = os.path.join(os.getcwd(), "out", "json")
+                    if not os.path.exists(out_path):
+                        os.makedirs(out_path)
+                    save_path = os.path.join(out_path, os.path.basename(path))
 
     elif opt.action == "test":
         tester = Tester(opt)
         tester.setup()
-        tester.test(conf_thresh=opt.conf_thresh, iou_thresh=opt.iou_thresh)
+        tester.test(opt.conf_thresh, opt.iou_thresh)
